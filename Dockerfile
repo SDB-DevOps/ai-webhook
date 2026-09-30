@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # 复制依赖定义文件 (修改处：将 requirements.txt 误写成了 requirement.txt)
-COPY requirements.txt .
+COPY requirement.txt .
 
 # 使用清华镜像源安装依赖，不留缓存
 RUN pip install --no-cache-dir -r requirements.txt
