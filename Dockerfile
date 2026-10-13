@@ -8,8 +8,8 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 复制依赖定义文件 (修改处：将 requirements.txt 误写成了 requirement.txt)
-COPY requirement.txt .
+# 复制依赖定义文件
+COPY requirements.txt .
 
 # 使用清华镜像源安装依赖，不留缓存
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,4 +22,3 @@ EXPOSE 8000
 
 # 启动 Uvicorn 服务（绑定 0.0.0.0 以允许容器外通信）
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
