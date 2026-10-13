@@ -22,3 +22,4 @@ EXPOSE 8000
 
 # 启动 Uvicorn 服务（绑定 0.0.0.0 以允许容器外通信）
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
