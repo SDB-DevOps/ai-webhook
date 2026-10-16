@@ -128,33 +128,33 @@ if __name__ == "__main__":
 ```
 ---
 
-## 🐳 Docker 打包与 K3s 集群部署
+## 🐳 Docker 打包与 Helm 集群部署
 
-项目已包含完整 Container & Kubernetes (K3s) 配置文件：
+项目包含完整的 Dockerfile 以及 Helm Chart 架构（位于 `k8s/` 目录）：
 - `Dockerfile` (基于 `python:3.13-slim`，构建时自动配置清华源)
 - `.dockerignore`
-- `k8s/deployment.yaml` (定义 2 个 Pod 副本、健康检查与资源限制)
-- `k8s/service.yaml` (ClusterIP 服务)
-- `k8s/ingress.yaml` (基于 Traefik 的路由配置)
-- `deploy.sh` (一键部署脚本)
+- `k8s/Chart.yaml` (Helm Chart 定义)
+- `k8s/values.yaml` (默认配置参数，包括副本数、镜像、资源限制、探针、Ingress 等)
+- `k8s/templates/` (`deployment.yaml`, `service.yaml`, `ingress.yaml` 模板文件)
+- `deploy.sh` (使用 Helm 的一键构建部署脚本)
 
-### 1. 手动构建与导入 K3s
+### 1. 手动构建与 Helm 部署
 
 ```bash
 # 1) 构建 Docker 镜像
 docker build -t demo-web:latest .
 
-# 2) 将本地构建的镜像导入 K3s 内置 containerd
+# 2) 将本地构建的镜像导入 K3s 内置 containerd (若适用)
 sudo k3s ctr images import <(docker save demo-web:latest)
 # 或使用 ctr:
 # docker save demo-web:latest | sudo ctr -n k8s.io images import -
 
-# 3) 部署到 K3s 集群
-kubectl apply -f k8s/
+# 3) 使用 Helm 部署到 Kubernetes
+helm upgrade --install demo-web ./k8s
 
 # 4) 查看部署状态
-kubectl get pods -l app=demo-web
-kubectl get svc demo-web-service
+kubectl get pods -l app=ai-webhook
+kubectl get svc -l app=ai-webhook
 ```
 
 ### 2. 一键自动构建部署
@@ -164,4 +164,5 @@ kubectl get svc demo-web-service
 ```bash
 ./deploy.sh
 ```
+
 

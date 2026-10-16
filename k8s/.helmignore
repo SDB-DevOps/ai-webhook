@@ -1,0 +1,14 @@
+# Patterns to ignore when packaging Kubernetes charts.
+.DS_Store
+# Common VCS
+.git/
+.gitignore
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*~
+# Various IDEs
+.project
+.idea/
+.vscode/

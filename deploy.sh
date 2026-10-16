@@ -3,6 +3,7 @@
 set -e
 
 IMAGE_NAME="demo-web:latest"
+RELEASE_NAME="demo-web"
 
 echo "📦 1. 正在使用 uv 导出最新的 requirements.txt..."
 uv export --format requirements-txt -o requirements.txt
@@ -19,10 +20,11 @@ else
     echo "💡 未检测到本地 k3s 命令，若使用远程 k3s 或 registry，请将镜像推送至镜像仓库。"
 fi
 
-echo "🚀 4. 部署应用至 Kubernetes (K3s)..."
-kubectl apply -f k8s/
+echo "🚀 4. 使用 Helm 部署应用至 Kubernetes..."
+helm upgrade --install ${RELEASE_NAME} ./k8s
 
 echo "✅ 5. 部署状态检查:"
-kubectl get pods -l app=demo-web
-kubectl get svc -l app=demo-web
-kubectl get ingress
+kubectl get pods -l app=ai-webhook
+kubectl get svc -l app=ai-webhook
+kubectl get ingress -l app=ai-webhook
+
