@@ -1,0 +1,52 @@
+# Default values for ai-webhook.
+
+replicaCount: 2
+
+image:
+  repository: demo-web
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations: {}
+    # kubernetes.io/ingress.class: traefik
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /api/hello
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /api/hello
+    initialDelaySeconds: 2
+    periodSeconds: 5
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
