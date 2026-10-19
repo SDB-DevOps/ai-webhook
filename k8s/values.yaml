@@ -3,7 +3,7 @@
 replicaCount: 2
 
 image:
-  repository: demo-web
+  repository: docker.io/digo66/kagent-app
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
