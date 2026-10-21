@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
-import os
-DATABASE_URL = os.environ["DATABASE_URL"]
+
 
 app = FastAPI(
     title="极简 Python Web 应用",
