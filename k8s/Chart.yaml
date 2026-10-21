@@ -3,4 +3,4 @@ name: ai-webhook
 description: Helm chart for ai-webhook Python FastAPI application
 type: application
 version: 0.1.0
-appVersion: "0.0.3"
+appVersion: "0.0.4"
