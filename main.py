@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
 import os
-DATABASE_URL = os.environ["DATABASE_URL"]
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 app = FastAPI(
     title="极简 Python Web 应用",
@@ -90,4 +90,3 @@ if __name__ == "__main__":
     print("🚀 服务正在启动: http://127.0.0.1:8000")
     print("📚 接口文档地址: http://127.0.0.1:8000/docs")
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-
