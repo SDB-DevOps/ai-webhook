@@ -21,10 +21,10 @@ service:
 resources:
   requests:
     cpu: 50m
-    memory: 15Mi
+    memory: 64Mi
   limits:
     cpu: 200m
-    memory: 15Mi
+    memory: 256Mi
 
 probes:
   liveness:
