@@ -134,8 +134,8 @@ if __name__ == "__main__":
 - `Dockerfile` (基于 `python:3.13-slim`，构建时自动配置清华源)
 - `.dockerignore`
 - `k8s/Chart.yaml` (Helm Chart 定义)
-- `k8s/values.yaml` (默认配置参数，包括副本数、镜像、资源限制、探针、Ingress 等)
-- `k8s/templates/` (`deployment.yaml`, `service.yaml`, `ingress.yaml` 模板文件)
+- `k8s/values.yaml` (默认配置参数，包括副本数、镜像、资源限制、探针、Service NodePort 等)
+- `k8s/templates/` (`deployment.yaml`, `service.yaml` 模板文件)
 - `deploy.sh` (使用 Helm 的一键构建部署脚本)
 
 ### 1. 手动构建与 Helm 部署

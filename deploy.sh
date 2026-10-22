@@ -26,5 +26,4 @@ helm upgrade --install ${RELEASE_NAME} ./k8s
 echo "✅ 5. 部署状态检查:"
 kubectl get pods -l app=ai-webhook
 kubectl get svc -l app=ai-webhook
-kubectl get ingress -l app=ai-webhook
 

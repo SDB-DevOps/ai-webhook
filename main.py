@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
 
+
 app = FastAPI(
     title="极简 Python Web 应用",
     description="基于 FastAPI 开发的极简 Web 服务",
