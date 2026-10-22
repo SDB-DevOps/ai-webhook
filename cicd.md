@@ -29,9 +29,10 @@ Step 3: 构建与推送异常诊断与自动修复 (CI Failure Remediation)
 
 Step 4: 集群部署验证与运行时健康检查 (Deployment Verification & Health Check)
   - 若前面 CI 步骤均执行成功且无报错，请验证新镜像在 Kubernetes 集群中的部署与运行状态：
+    【GitOps 规范约束】：本环境由 ArgoCD 严格按照 GitOps 声明式管理。在验证排错过程中仅允许进行只读状态观察与日志收集（如 kubectl get, describe, logs, rollout status 等），严禁执行任何命令式修改集群资源的操作（如禁止执行 kubectl rollout restart, edit, patch, set image 等命令式干预）。
     1. 检查新构建的容器镜像是否已正确同步并部署到 Kubernetes 集群中（查找匹配该镜像或应用的工作负载 Deployment / StatefulSet / Pod）。
     2. 状态判定与等待就绪：
-       - 在镜像刚刚推送完成的一小段时间内，由于 GitOps 控制器 (如 ArgoCD) 可能先行触发部署，Pod 可能会短暂出现 ErrImagePull 或 ImagePullBackOff。如果发现处于退避等待中，请执行 kubectl rollout restart deployment/[应用名称] 加速重试拉取，或等待其自动就绪。
+       - 在镜像刚推送完成初期，Pod 可能会短暂出现 ErrImagePull 或 ImagePullBackOff，属于正常拉取延迟，Kubernetes 与 ArgoCD 会自动重试并等待镜像就绪，请保持只读观察。
        - 使用 kubectl rollout status deployment/[应用名称] --timeout=120s 等待确认部署完成。
        - 【正常就绪判定过滤】：若新镜像拉取成功且 Pod 处于 1/1 Running / Ready 状态、探针检查通过，则判定该部署状态为【健康正常 (HEALTHY)】。对于镜像推送完成前的瞬时拉取延迟，严禁将其作为故障进行长篇排错报警，也不要触发 PR 修复流程。
     3. 真正的运行时异常排错与自动修复：
