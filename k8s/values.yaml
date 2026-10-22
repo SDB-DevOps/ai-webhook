@@ -1,6 +1,6 @@
 # Default values for ai-webhook.
 
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: docker.io/digo66/kagent-app
