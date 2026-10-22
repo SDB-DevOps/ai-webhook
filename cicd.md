@@ -6,6 +6,7 @@
 - 目标镜像 Tag (destination-image): digo66/kagent-app:latest
 
 【请按顺序执行以下 5 个步骤】：
+
 Step 0: 合并代码
   - 合并指定代码仓库 (https://github.com/SDB-DevOps/ai-webhook.git) 的 feature 分支到 dev 分支。
   - 如果合并失败，请自动在 GitHub 仓库中创建修复分支 (fix branch)、提交修改并创建 Pull Request。
