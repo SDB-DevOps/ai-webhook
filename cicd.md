@@ -9,7 +9,7 @@
 
 Step 0: 合并代码
   - 合并指定代码仓库 (https://github.com/SDB-DevOps/ai-webhook.git) 的 feature 分支到 dev 分支。
-  - 如果合并失败，请自动在 GitHub 仓库中创建修复分支 (fix branch)、提交修改并创建 Pull Request。
+  - 如果合并失败，请自动在 GitHub 仓库中创建修复分支 (fix branch)、提交修改并创建 Pull Request 到feature分支。
   
 Step 1: 代码拉取与检查
   - 如果Step 0成功，请拉取指定代码仓库 (https://github.com/SDB-DevOps/ai-webhook.git) 的 dev 分支到工作目录。
@@ -25,7 +25,7 @@ Step 3: 构建与推送异常诊断与自动修复 (CI Failure Remediation)
   - 如果前面 Step 1 或 Step 2 遇到任何错误或构建/推送失败：
     1. 深入分析详细错误日志，找出根本原因 (Root Cause)。
     2. 给出具体的代码或配置修复建议。
-    3. 请自动在 GitHub 仓库中创建修复分支 (fix branch)、提交修改并创建 Pull Request。
+    3. 请自动在 GitHub 仓库中创建修复分支 (fix branch)、提交修改并创建 Pull Request 到feature分支。
 
 Step 4: 集群部署验证与运行时健康检查 (Deployment Verification & Health Check)
   - 若前面 CI 步骤均执行成功且无报错，请验证新镜像在 Kubernetes 集群中的部署与运行状态：
@@ -39,7 +39,7 @@ Step 4: 集群部署验证与运行时健康检查 (Deployment Verification & He
        - 仅当 Pod 发生持续性、无法自愈的严重故障（例如持续 CrashLoopBackOff、启动 OOMKilled、代码抛异常退出、探针持续失败等）：
          a. 采集并分析容器的详细事件 (kubectl describe) 与运行日志 (kubectl logs)，精准定位根本原因 (Root Cause)。
          b. 给出清晰的问题诊断分析与可落地的修复建议。
-         c. 若问题可以通过修改代码或配置（例如应用程序源码、Dockerfile、Helm values / 模板配置等）来修复，请自动在 GitHub 仓库中以当前出问题的分支为基础，创建修复分支 (fix branch)、提交代码修改并创建 Pull Request。
+         c. 若问题可以通过修改代码或配置（例如应用程序源码、Dockerfile、Helm values / 模板配置等）来修复，请自动在 GitHub 仓库中以当前出问题的分支为基础，创建修复分支 (fix branch)、提交代码修改并创建 Pull Request 到feature分支。
          d. 恢复dev分支到step0 合并代码之前的状态。
 
 【汇报输出规范】：
