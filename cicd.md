@@ -40,6 +40,7 @@ Step 4: 集群部署验证与运行时健康检查 (Deployment Verification & He
          a. 采集并分析容器的详细事件 (kubectl describe) 与运行日志 (kubectl logs)，精准定位根本原因 (Root Cause)。
          b. 给出清晰的问题诊断分析与可落地的修复建议。
          c. 若问题可以通过修改代码或配置（例如应用程序源码、Dockerfile、Helm values / 模板配置等）来修复，请自动在 GitHub 仓库中以当前出问题的分支为基础，创建修复分支 (fix branch)、提交代码修改并创建 Pull Request。
+         d. 恢复dev分支到step0 合并代码之前的状态。
 
 【汇报输出规范】：
 请一步一步执行并详细汇报每个步骤的执行进展。
