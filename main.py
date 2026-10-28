@@ -2,9 +2,6 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
 
-import os
-DATABASE_URL = os.environ["DATABASE_URL"]
-
 app = FastAPI(
     title="极简 Python Web 应用",
     description="基于 FastAPI 开发的极简 Web 服务",
@@ -59,7 +56,7 @@ def read_root():
             a.btn-secondary:hover { background: #e2e8f0; }
         </style>
     </head>
-    <body>
+    <body >
         <div class="card">
             <h1>🚀 极简 Python Web 应用</h1>
             <p>欢迎！这是一个基于 <strong>FastAPI</strong> 构筑的轻量级 Web 服务。</p>
@@ -91,4 +88,3 @@ if __name__ == "__main__":
     print("🚀 服务正在启动: http://127.0.0.1:8000")
     print("📚 接口文档地址: http://127.0.0.1:8000/docs")
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
-
