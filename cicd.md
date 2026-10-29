@@ -42,17 +42,15 @@ Step 2: SonarCloud 质量扫描与门禁检查
       深入分析缺陷根因，若能通过修改代码或配置文件修复，直接转入 Step 4 自动创建修复分支并向 `source-branch` 提 PR 修复。
 
 Step 3: 使用 Kaniko 构建与推送容器镜像 (Helm appVersion 联动)
-  - 读取 `k8s/Chart.yaml` 的 `appVersion`，将其作为镜像 Tag：`IMAGE_TAG=${APP_VERSION:-latest}`，目标镜像完整标识为 `digo66/kagent-app:${IMAGE_TAG}`。
-  - 使用 Kaniko 执行器 (`gcr.io/kaniko-project/executor:latest` 或容器内 `/kaniko/executor`) 执行无守护进程镜像构建与推送：
-    ```bash
-    /kaniko/executor \
-      --context=dir://. \
-      --dockerfile=Dockerfile \
-      --destination=docker.io/digo66/kagent-app:${IMAGE_TAG} \
-      --cache=true
-    ```
+  - 读取 `k8s/Chart.yaml` 的 `appVersion`，将其作为镜像 Tag：`IMAGE_TAG=${APP_VERSION:-latest}`，目标镜像完整标识为 `docker.io/digo66/kagent-app:${IMAGE_TAG}`。
+  - **构建方法与云原生执行规范**：
+    - 由于 kagent 运行在 Kubernetes Pod 内部（无本地 Docker daemon 及 kaniko 环境），请**通过 Kubernetes 调度 Kaniko 任务**执行镜像打包与推送：
+      - 通过 `kubectl` 在 `default` 命名空间创建临时 Kaniko Job（使用官方镜像 `gcr.io/kaniko-project/executor:latest`）；
+      - 构建上下文指向当前分支的 Git 仓库（`git://github.com/SDB-DevOps/ai-webhook.git#refs/heads/<current-branch>`）；
+      - 挂载集群 `default` 命名空间中已有的 `docker-credentials` Secret（映射至 `/kaniko/.docker/config.json`）完成 Docker Hub 鉴权推送；
+      - 使用 `kubectl` 监控并等待任务执行完成，成功后清理临时 Job 资源。
   - 【强阻断门禁】：
-    - 检查 Kaniko 执行退出码。若镜像构建或推送失败（退出码非 0），必须在此步骤立即阻断并退出，严禁进入 Step 5，直接转入 Step 4 进行故障诊断与修复。
+    - 检查 Kaniko 执行结果。若镜像构建或推送失败，必须在此步骤立即阻断流水线，抓取 Job 日志转入 Step 4 进行故障诊断与修复，严禁进入 Step 5。
     - 确保 Git 仓库中声明的 Helm values / Chart.yaml 的版本与已成功推送的镜像严格一致，以供 ArgoCD 自动同步拉取。
 
 Step 4: CI 阶段与代码质量异常诊断与自动修复
