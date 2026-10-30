@@ -11,7 +11,8 @@
 - SonarCloud 配置:
   - Project Key: `SDB-DevOps_ai-webhook` | Organization: `sdb-devops` | Host: `https://sonarcloud.io`
   - 凭证: 环境变量 `SONAR_TOKEN`
-- 镜像仓库推送凭据: 环境变量 `DOCKER_CONFIG` 或挂载 `/kaniko/.docker/config.json`（供 Kaniko 鉴权）
+- OpenSCA 配置: 开源组件依赖与 CVE 漏洞扫描（支持 CLI 或容器任务运行）
+- 镜像仓库推送凭据: 环境变量 `DOCKER_CONFIG`、或集群 Secret `docker-credentials` (位于 default 命名空间)
 
 【执行步骤】：
 
@@ -39,9 +40,15 @@ Step 2: SonarCloud 质量扫描与门禁检查
     ```
   - 门禁检查与代码缺陷判定：
     - 若门禁判定为 `FAILED` 或扫描出中高危缺陷（如 Dockerfile 敏感文件拷贝、代码漏洞等）：
-      深入分析缺陷根因，若能通过修改代码或配置文件修复，直接转入 Step 4 自动创建修复分支并向 `source-branch` 提 PR 修复。
+      深入分析缺陷根因，若能通过修改代码或配置文件修复，直接转入 Step 5 自动创建修复分支并向 `source-branch` 提 PR 修复。
 
-Step 3: 使用 Kaniko 构建与推送容器镜像 (Helm appVersion 联动)
+Step 3: OpenSCA 开源组件与依赖安全扫描
+  - **扫描方法与目标**：
+    - 对当前分支代码执行 OpenSCA 扫描（可使用 `opensca-cli` 工具或集群容器化任务执行），深度检测项目第三方开源组件（如 `requirements.txt`）、已知 CVE 漏洞及许可证风险。
+  - **门禁卡点与处置**：
+    - 检查扫描输出的漏洞与风险评估。若发现中高危漏洞（High/Critical CVE）或合规风险，阻断镜像构建，转入 Step 5 定位风险组件并升级修复。
+
+Step 4: 使用 Kaniko 构建与推送容器镜像 (Helm appVersion 联动)
   - 读取 `k8s/Chart.yaml` 的 `appVersion`，将其作为镜像 Tag：`IMAGE_TAG=${APP_VERSION:-latest}`，目标镜像完整标识为 `docker.io/digo66/kagent-app:${IMAGE_TAG}`。
   - **构建方法与云原生执行规范**：
     - 由于 kagent 运行在 Kubernetes Pod 内部（无本地 Docker daemon 及 kaniko 环境），请**通过 Kubernetes 调度 Kaniko 任务**执行镜像打包与推送：
@@ -50,17 +57,17 @@ Step 3: 使用 Kaniko 构建与推送容器镜像 (Helm appVersion 联动)
       - 挂载集群 `default` 命名空间中已有的 `docker-credentials` Secret（映射至 `/kaniko/.docker/config.json`）完成 Docker Hub 鉴权推送；
       - 使用 `kubectl` 监控并等待任务执行完成，成功后清理临时 Job 资源。
   - 【强阻断门禁】：
-    - 检查 Kaniko 执行结果。若镜像构建或推送失败，必须在此步骤立即阻断流水线，抓取 Job 日志转入 Step 4 进行故障诊断与修复，严禁进入 Step 5。
+    - 检查 Kaniko 执行结果。若镜像构建或推送失败，必须在此步骤立即阻断流水线，抓取 Job 日志转入 Step 5 进行故障诊断与修复，严禁进入 Step 6。
     - 确保 Git 仓库中声明的 Helm values / Chart.yaml 的版本与已成功推送的镜像严格一致，以供 ArgoCD 自动同步拉取。
 
-Step 4: CI 阶段与代码质量异常诊断与自动修复
-  - 若 Step 1~3 任意环节失败（包括 SonarCloud 发现可代码修复的缺陷/门禁不通过、Kaniko 镜像构建或推送失败等）：
-    1. 深入分析日志或 SonarCloud Issue 详情，定位根本原因，给出修复建议。
-    2. 在 GitHub 自动创建修复分支（分支名形如 `fix/sonar-[issue-type]` 或 `fix/ci-[failure-type]`）。
-    3. 实施具体的代码修复（如修复代码 Bug、优化 Dockerfile 指令与补全 `.dockerignore`、修复 Helm 配置等）并提交变更。
+Step 5: CI 阶段与代码质量异常诊断与自动修复
+  - 若 Step 1~4 任意环节失败（包括 SonarCloud 质量缺陷、OpenSCA 依赖漏洞门禁不通过、Kaniko 镜像构建或推送失败等）：
+    1. 深入分析日志或安全扫描详情，定位根本原因，给出修复建议。
+    2. 在 GitHub 自动创建修复分支（分支名形如 `fix/sonar-[issue-type]` 或 `fix/sca-[vuln-name]` 或 `fix/ci-[failure-type]`）。
+    3. 实施具体的代码修复（如修复代码 Bug、升级受漏洞影响的依赖包版本、优化 Dockerfile 指令与补全 `.dockerignore`、修复 Helm 配置等）并提交变更。
     4. 向 `source-branch` 分支提交 Pull Request，并在 PR 描述中清晰说明问题原因与修复变更。
 
-Step 5: 集群部署验证与运行时健康检查 (GitOps 规范)
+Step 6: 集群部署验证与运行时健康检查 (GitOps 规范)
   - 【只读约束】：ArgoCD 声明式托管，严禁命令式修改资源（禁止 edit/patch/restart/set image），仅允许只读观察。
   - 状态验证与就绪判定：
     - 执行 `kubectl rollout status deployment/ai-webhook -n default --timeout=120s` 等待部署。
@@ -81,6 +88,7 @@ Step 5: 集群部署验证与运行时健康检查 (GitOps 规范)
 - **Git Commit**: [target-branch 分支最新 commit SHA]
 - **Helm AppVersion**: [k8s/Chart.yaml 中的 appVersion]
 - **SonarQube 质量门禁**: ✅ PASSED / ❌ FAILED ([简要评分与问题数])
+- **OpenSCA 安全门禁**: ✅ PASSED / ❌ FAILED ([中高危漏洞数与合规状态])
 - **目标镜像**: [实际推送的镜像完整 Tag]
 - **CI 阶段结果**: ✅ 成功 / ❌ 失败 ([简要说明])
 - **CD 阶段结果**: ✅ 成功 (就绪状态) / ❌ 失败 ([简要说明])
