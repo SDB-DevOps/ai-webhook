@@ -11,7 +11,7 @@
 - SonarCloud 配置:
   - Project Key: `SDB-DevOps_ai-webhook` | Organization: `sdb-devops` | Host: `https://sonarcloud.io`
   - 凭证: 环境变量 `SONAR_TOKEN`
-- OpenSCA 配置: 开源组件依赖与 CVE 漏洞扫描（支持 CLI 或容器任务运行）
+- OpenSCA 配置: 开源组件依赖与 CVE 漏洞扫描（必须调用官方 opensca-cli 工具或 opensca/opensca-cli 镜像，生成 opensca-result.json 报告）
 - 镜像仓库推送凭据: 环境变量 `DOCKER_CONFIG`、或集群 Secret `docker-credentials` (位于 default 命名空间)
 
 【执行步骤】：
@@ -42,11 +42,26 @@ Step 2: SonarCloud 质量扫描与门禁检查
     - 若门禁判定为 `FAILED` 或扫描出中高危缺陷（如 Dockerfile 敏感文件拷贝、代码漏洞等）：
       深入分析缺陷根因，若能通过修改代码或配置文件修复，直接转入 Step 5 自动创建修复分支并向 `source-branch` 提 PR 修复。
 
-Step 3: OpenSCA 开源组件与依赖安全扫描
-  - **扫描方法与目标**：
-    - 对当前分支代码执行 OpenSCA 扫描（可使用 `opensca-cli` 工具或集群容器化任务执行），深度检测项目第三方开源组件（如 `requirements.txt`）、已知 CVE 漏洞及许可证风险。
-  - **门禁卡点与处置**：
-    - 检查扫描输出的漏洞与风险评估。若发现中高危漏洞（High/Critical CVE）或合规风险，阻断镜像构建，转入 Step 5 定位风险组件并升级修复。
+Step 3: OpenSCA 开源组件与依赖安全扫描 (必须调用真实 opensca 工具)
+  - **强制真实扫描规范**：
+    - 必须调用官方 `opensca-cli` 命令行工具对项目进行实际代码与依赖漏洞扫描，严禁仅凭大模型知识库静态推测。
+  - **扫描执行方式**（推荐以下任一方式）：
+    - **方式一（本地/Pod 内快速安装运行，首选）**：
+      若执行环境中未预装 `opensca-cli`，自动探测架构并下载官方 release 二进制或通过脚本安装执行：
+      ```bash
+      if ! command -v opensca-cli &>/dev/null; then
+        ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+        curl -sL "https://github.com/XmirrorSecurity/OpenSCA-cli/releases/download/v3.0.11/opensca-cli-v3.0.11-${OS}-${ARCH}.tar.gz" | tar -xz -C /tmp/
+        export PATH="/tmp:$PATH"
+      fi
+      opensca-cli -path . -out opensca-result.json
+      ```
+    - **方式二（Kubernetes 单次容器任务）**：
+      使用官方镜像 `opensca/opensca-cli:latest` 在 Kubernetes `default` 命名空间拉起单次任务，挂载代码目录执行并输出 `opensca-result.json`。
+  - **报告解析与安全门禁**：
+    - 必须真实解析并读取 `opensca-result.json` 输出报告，提取识别到的组件数量、漏洞列表及严重等级（Critical / High / Medium / Low）。
+    - 【安全门禁阻断】：若报告中发现 Critical 或 High 级别的 CVE 漏洞，必须阻断流水线进入 Step 4，直接转入 Step 5 定位风险依赖包并升级修复。
 
 Step 4: 使用 Kaniko 构建与推送容器镜像 (Helm appVersion 联动)
   - 读取 `k8s/Chart.yaml` 的 `appVersion`，将其作为镜像 Tag：`IMAGE_TAG=${APP_VERSION:-latest}`，目标镜像完整标识为 `docker.io/digo66/kagent-app:${IMAGE_TAG}`。
