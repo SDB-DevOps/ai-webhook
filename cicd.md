@@ -85,7 +85,7 @@ Step 5: CI 阶段与代码质量异常诊断与自动修复
 Step 6: 集群部署验证与运行时健康检查 (GitOps 规范)
   - 【只读约束】：ArgoCD 声明式托管，严禁命令式修改资源（禁止 edit/patch/restart/set image），仅允许只读观察。
   - 状态验证与就绪判定：
-    - 执行 `kubectl rollout status deployment/ai-webhook -n default --timeout=120s` 等待部署。
+    - 获取当前集群实际部署对应的 Deployment 名称（默认为 `ai-webhook` 或 `ai-webhook-main` 等），执行 `kubectl rollout status deployment/<deployment-name> -n default --timeout=120s` 等待部署。
     - 允许拉取初期短暂的 `ImagePullBackOff`（正常拉取延迟，严禁报障或提PR）；当 Pod 处于 1/1 Running / Ready 即判定为【HEALTHY】。
   - 严重故障自动修复与回滚（持续 CrashLoopBackOff/OOM/探针持续失败）：
     1. 收集 `kubectl describe` 与 `kubectl logs` 定位根因，向 `source-branch` 提修复 PR。
@@ -93,6 +93,40 @@ Step 6: 集群部署验证与运行时健康检查 (GitOps 规范)
        - 优先 Revert: `git revert -m 1 <MERGE_COMMIT_SHA> -m "revert: rollback dev due to failure" && git push origin ${TARGET_BRANCH:-dev}`
        - 允许强推场景: `git reset --hard ${PRE_MERGE_SHA} && git push origin ${TARGET_BRANCH:-dev} --force`
        - 推送后由 ArgoCD 自动同步回退集群至上一健康版本。
+
+Step 7: 部署后自动化冒烟测试 (Post-deployment Smoke Testing)
+  - **测试目标与执行规范**：
+    - 在 Step 6 Pod 达到 1/1 Ready 状态后，必须对服务进行真实的端到端网络与业务接口自动化验收，严禁跳过。
+    - 使用 Kubernetes 原生方式拉起轻量测试 Pod（官方镜像 `curlimages/curl:latest`），直接向集群内的 Service（`http://ai-webhook-main:8000` 或对应 service 名）发起测试并在测试完毕后销毁：
+      ```bash
+      # 动态获取对应的 Service 名称
+      SVC_NAME=$(kubectl get svc -n default -l app.kubernetes.io/name=ai-webhook -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "ai-webhook-main")
+      
+      kubectl run smoke-test-runner --rm -i --restart=Never \
+        --image=curlimages/curl:latest \
+        -- sh -c "set -e
+      SVC_URL=\"http://${SVC_NAME}:8000\"
+      echo '=== [Case 1] 验证首页 GET / ==='
+      STATUS=\$(curl -s -o /dev/null -w '%{http_code}' \"\$SVC_URL/\")
+      test \"\$STATUS\" = '200' && echo '✅ 首页访问正常 (HTTP 200)'
+
+      echo '=== [Case 2] 验证核心接口 GET /api/hello ==='
+      RESP=\$(curl -s \"\$SVC_URL/api/hello\")
+      echo \"\$RESP\" | grep -q '\"status\":\"success\"' && echo \"✅ Hello API 校验通过: \$RESP\"
+
+      echo '=== [Case 3] 验证动态路由 GET /api/greet/kagent ==='
+      RESP=\$(curl -s \"\$SVC_URL/api/greet/kagent\")
+      echo \"\$RESP\" | grep -q '\"user\":\"kagent\"' && echo \"✅ 动态参数 API 校验通过: \$RESP\"
+
+      echo '=== [Case 4] 验证 API 文档 GET /docs ==='
+      STATUS=\$(curl -s -o /dev/null -w '%{http_code}' \"\$SVC_URL/docs\")
+      test \"\$STATUS\" = '200' && echo '✅ 文档服务正常 (HTTP 200)'
+
+      echo '🎉 全部冒烟测试用例通过！'"
+      ```
+  - **冒烟门禁判定与异常处置**：
+    - 4 个测试场景必须全部返回期望状态（HTTP 200 且响应体字段匹配）。
+    - 若任意测试用例失败（如接口 500、404、返回结构不符合预期），判定自动化测试未通过，立即收集异常详情转入 Step 5 进行缺陷诊断与代码修复。
 
 【汇报输出规范】：
 请一步一步执行并详细汇报每个步骤的执行进展。
@@ -107,5 +141,6 @@ Step 6: 集群部署验证与运行时健康检查 (GitOps 规范)
 - **目标镜像**: [实际推送的镜像完整 Tag]
 - **CI 阶段结果**: ✅ 成功 / ❌ 失败 ([简要说明])
 - **CD 阶段结果**: ✅ 成功 (就绪状态) / ❌ 失败 ([简要说明])
+- **自动化测试**: ✅ PASSED / ❌ FAILED ([4个用例均通过/失败用例说明])
 - **自动修复状态**: 无需修复 / 已创建修复PR: [PR链接或分支名]
 ================================================================================
