@@ -21,11 +21,11 @@ service:
 resources:
   requests:
     cpu: 50m
-    memory: 64Mi
+    memory: 16Mi
     ephemeral-storage: 100Mi
   limits:
     cpu: 200m
-    memory: 256Mi
+    memory: 16Mi
     ephemeral-storage: 1Gi
 
 probes:
