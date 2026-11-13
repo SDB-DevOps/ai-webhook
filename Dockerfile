@@ -12,7 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # 复制依赖定义文件
-COPY requirements.txt .
+COPY requirement.txt .
 
 # 仅安装二进制 Wheel，禁止执行源码构建脚本 (解决 S8541)
 RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
